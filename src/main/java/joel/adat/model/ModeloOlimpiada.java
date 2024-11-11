@@ -1,20 +1,38 @@
 package joel.adat.model;
 
+import jakarta.persistence.*;
 import java.util.Objects;
 
 /**
  * Clase que representa una olimpiada, con detalles sobre su nombre, año, temporada y ciudad.
  */
+@Entity
+@Table(name = "Olimpiada")
 public class ModeloOlimpiada {
 
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "id_olimpiada")
+	private int idOlimpiada;
+
+	@Column(name = "nombre", nullable = false, length = 100)
 	private String nombreOlimpiada;
+
+	@Column(name = "anio", nullable = false)
 	private int anio;
+
+	@Column(name = "temporada", nullable = false, length = 10)
 	private String temporada;
+
+	@Column(name = "ciudad", nullable = false, length = 100)
 	private String ciudad;
-	
+
+	// Constructor vacío requerido por Hibernate
+	public ModeloOlimpiada() {}
+
 	/**
 	 * Constructor que inicializa los detalles de una olimpiada.
-	 * 
+	 *
 	 * @param nombreOlimpiada El nombre oficial de la olimpiada.
 	 * @param anio El año en que se celebró la olimpiada.
 	 * @param temporada La temporada en la que se celebró ("Winter" o "Summer").
@@ -26,78 +44,62 @@ public class ModeloOlimpiada {
 		this.temporada = temporada;
 		this.ciudad = ciudad;
 	}
-	
-	/**
-	 * Obtiene el nombre oficial de la olimpiada.
-	 * 
-	 * @return Una cadena que representa el nombre de la olimpiada.
-	 */
+
+	public int getIdOlimpiada() {
+		return idOlimpiada;
+	}
+
+	public void setIdOlimpiada(int idOlimpiada) {
+		this.idOlimpiada = idOlimpiada;
+	}
+
 	public String getNombreOlimpiada() {
 		return nombreOlimpiada;
 	}
 
-	/**
-	 * Obtiene el año de la olimpiada.
-	 * 
-	 * @return El año en que se celebró la olimpiada.
-	 */
+	public void setNombreOlimpiada(String nombreOlimpiada) {
+		this.nombreOlimpiada = nombreOlimpiada;
+	}
+
 	public int getAnio() {
 		return anio;
 	}
 
-	/**
-	 * Obtiene la temporada de la olimpiada.
-	 * 
-	 * @return Una cadena que representa la temporada de la olimpiada ("Winter" o "Summer").
-	 */
+	public void setAnio(int anio) {
+		this.anio = anio;
+	}
+
 	public String getTemporada() {
 		return temporada;
 	}
 
-	/**
-	 * Obtiene la ciudad en la que se celebró la olimpiada.
-	 * 
-	 * @return Una cadena que representa la ciudad de la olimpiada.
-	 */
+	public void setTemporada(String temporada) {
+		this.temporada = temporada;
+	}
+
 	public String getCiudad() {
 		return ciudad;
 	}
 
-	/**
-	 * Devuelve una representación en forma de cadena de la olimpiada, incluyendo
-	 * el nombre, año, temporada y ciudad.
-	 * 
-	 * @return Una cadena con los detalles de la olimpiada.
-	 */
+	public void setCiudad(String ciudad) {
+		this.ciudad = ciudad;
+	}
+
 	@Override
 	public String toString() {
 		return this.nombreOlimpiada + "," + this.anio + "," + this.temporada + "," + this.ciudad;
 	}
 
-	/**
-	 * Calcula el código hash para la olimpiada, basado en el nombre, año, temporada y ciudad.
-	 * 
-	 * @return El código hash de la instancia de ModeloOlimpiada.
-	 */
 	@Override
 	public int hashCode() {
 		return Objects.hash(anio, ciudad, nombreOlimpiada, temporada);
 	}
 
-	/**
-	 * Compara esta instancia de ModeloOlimpiada con otro objeto para determinar
-	 * si son iguales, basándose en el nombre, año, temporada y ciudad.
-	 * 
-	 * @param obj El objeto a comparar con la instancia actual.
-	 * @return true si los objetos son iguales; false en caso contrario.
-	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
+		if (obj == null || getClass() != obj.getClass())
 			return false;
 		ModeloOlimpiada other = (ModeloOlimpiada) obj;
 		return anio == other.anio && Objects.equals(ciudad, other.ciudad)

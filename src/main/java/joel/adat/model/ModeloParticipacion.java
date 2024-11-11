@@ -1,20 +1,44 @@
 package joel.adat.model;
 
+import jakarta.persistence.*;
+
 /**
- * Clase que representa la participación de un deportista en un evento específico, 
+ * Clase que representa la participación de un deportista en un evento específico,
  * incluyendo su equipo, edad y tipo de medalla obtenida.
  */
+@Entity
+@Table(name = "Participacion")
 public class ModeloParticipacion {
-	
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "id_participacion")
+	private int idParticipacion;
+
+	@ManyToOne
+	@JoinColumn(name = "id_deportista", nullable = false)
 	private ModeloDeportista deportista;
+
+	@ManyToOne
+	@JoinColumn(name = "id_evento", nullable = false)
 	private ModeloEvento evento;
+
+	@ManyToOne
+	@JoinColumn(name = "id_equipo", nullable = false)
 	private ModeloEquipo equipo;
+
+	@Column(name = "edad", nullable = false)
 	private int edad;
+
+	@Column(name = "medalla", nullable = false, length = 10)
 	private String medalla;
-	
+
+	// Constructor vacío requerido por Hibernate
+	public ModeloParticipacion() {}
+
 	/**
 	 * Constructor que inicializa la participación de un deportista en un evento.
-	 * 
+	 *
 	 * @param deportista El modelo del deportista que participa.
 	 * @param evento El modelo del evento en el que participa el deportista.
 	 * @param equipo El modelo del equipo al que pertenece el deportista.
@@ -28,61 +52,59 @@ public class ModeloParticipacion {
 		this.edad = edad;
 		this.medalla = medalla;
 	}
-	
-	/**
-	 * Devuelve una representación en forma de cadena de la participación, 
-	 * incluyendo el nombre del deportista, su altura, peso, edad, nombre del equipo y medalla obtenida.
-	 * 
-	 * @return Una cadena con los detalles de la participación.
-	 */
-	@Override
-	public String toString() {
-		return this.deportista.getNombreDeportista() + "," + this.deportista.getAltura() + "," + this.deportista.getPeso() +
-				"," + this.edad + "," + this.equipo.getNombreEquipo() + "," + this.medalla;
+
+	// Getters y setters
+	public int getIdParticipacion() {
+		return idParticipacion;
 	}
-	
-	/**
-	 * Obtiene el deportista que participa.
-	 * 
-	 * @return Un objeto ModeloDeportista correspondiente al deportista.
-	 */
+
+	public void setIdParticipacion(int idParticipacion) {
+		this.idParticipacion = idParticipacion;
+	}
+
 	public ModeloDeportista getDeportista() {
 		return deportista;
 	}
 
-	/**
-	 * Obtiene el evento en el que participa el deportista.
-	 * 
-	 * @return Un objeto ModeloEvento correspondiente al evento.
-	 */
+	public void setDeportista(ModeloDeportista deportista) {
+		this.deportista = deportista;
+	}
+
 	public ModeloEvento getEvento() {
 		return evento;
 	}
 
-	/**
-	 * Obtiene el equipo al que pertenece el deportista.
-	 * 
-	 * @return Un objeto ModeloEquipo correspondiente al equipo.
-	 */
+	public void setEvento(ModeloEvento evento) {
+		this.evento = evento;
+	}
+
 	public ModeloEquipo getEquipo() {
 		return equipo;
 	}
 
-	/**
-	 * Obtiene la edad del deportista al momento de la participación.
-	 * 
-	 * @return La edad del deportista.
-	 */
+	public void setEquipo(ModeloEquipo equipo) {
+		this.equipo = equipo;
+	}
+
 	public int getEdad() {
 		return edad;
 	}
 
-	/**
-	 * Obtiene el tipo de medalla obtenida por el deportista en el evento.
-	 * 
-	 * @return Una cadena que representa la medalla obtenida ("Gold", "Silver", "Bronze" o "NA").
-	 */
+	public void setEdad(int edad) {
+		this.edad = edad;
+	}
+
 	public String getMedalla() {
 		return medalla;
+	}
+
+	public void setMedalla(String medalla) {
+		this.medalla = medalla;
+	}
+
+	@Override
+	public String toString() {
+		return this.deportista.getNombreDeportista() + "," + this.deportista.getAltura() + "," + this.deportista.getPeso() +
+				"," + this.edad + "," + this.equipo.getNombreEquipo() + "," + this.medalla;
 	}
 }

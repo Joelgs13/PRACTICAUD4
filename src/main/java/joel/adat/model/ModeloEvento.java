@@ -1,21 +1,39 @@
 package joel.adat.model;
 
+import jakarta.persistence.*;
 import java.util.Objects;
 
 /**
- * Clase que representa un evento deportivo en el contexto de una olimpiada, 
- * incluyendo el nombre del evento, el deporte al que pertenece y la olimpiada 
+ * Clase que representa un evento deportivo en el contexto de una olimpiada,
+ * incluyendo el nombre del evento, el deporte al que pertenece y la olimpiada
  * en la que se realizó.
  */
+@Entity
+@Table(name = "Evento")
 public class ModeloEvento {
 
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "id_evento")
+	private int idEvento;
+
+	@Column(name = "nombre", nullable = false, length = 150)
 	private String nombreEvento;
+
+	@ManyToOne
+	@JoinColumn(name = "id_deporte", nullable = false)
 	private ModeloDeporte deporte;
+
+	@ManyToOne
+	@JoinColumn(name = "id_olimpiada", nullable = false)
 	private ModeloOlimpiada olimpiada;
+
+	// Constructor vacío requerido por Hibernate
+	public ModeloEvento() {}
 
 	/**
 	 * Constructor para inicializar un evento con su nombre, deporte y olimpiada asociada.
-	 * 
+	 *
 	 * @param nombreEvento El nombre del evento deportivo.
 	 * @param deporte El deporte al que pertenece el evento.
 	 * @param olimpiada La olimpiada en la que se realizó el evento.
@@ -26,69 +44,53 @@ public class ModeloEvento {
 		this.olimpiada = olimpiada;
 	}
 
-	/**
-	 * Obtiene el nombre del evento deportivo.
-	 * 
-	 * @return Una cadena que representa el nombre del evento.
-	 */
+	public int getIdEvento() {
+		return idEvento;
+	}
+
+	public void setIdEvento(int idEvento) {
+		this.idEvento = idEvento;
+	}
+
 	public String getNombreEvento() {
 		return nombreEvento;
 	}
 
-	/**
-	 * Obtiene el deporte al que pertenece el evento.
-	 * 
-	 * @return Una instancia de ModeloDeporte que representa el deporte del evento.
-	 */
+	public void setNombreEvento(String nombreEvento) {
+		this.nombreEvento = nombreEvento;
+	}
+
 	public ModeloDeporte getDeporte() {
 		return deporte;
 	}
 
-	/**
-	 * Obtiene la olimpiada en la que se realizó el evento.
-	 * 
-	 * @return Una instancia de ModeloOlimpiada que representa la olimpiada del evento.
-	 */
+	public void setDeporte(ModeloDeporte deporte) {
+		this.deporte = deporte;
+	}
+
 	public ModeloOlimpiada getOlimpiada() {
 		return olimpiada;
 	}
 
-	/**
-	 * Devuelve una representación en forma de cadena del evento, que incluye 
-	 * el nombre del evento, el deporte y la olimpiada.
-	 * 
-	 * @return Una cadena con los detalles del evento.
-	 */
-	@Override
-	public String toString() {
-		return this.nombreEvento + "," + this.deporte.getNombreDeporte() + "," + this.olimpiada.getNombreOlimpiada();
+	public void setOlimpiada(ModeloOlimpiada olimpiada) {
+		this.olimpiada = olimpiada;
 	}
 
-	/**
-	 * Calcula el código hash para el evento, basado en el nombre del evento, 
-	 * el deporte y la olimpiada.
-	 * 
-	 * @return El código hash de la instancia de ModeloEvento.
-	 */
+	@Override
+	public String toString() {
+		return this.nombreEvento + ", " + this.deporte.getNombreDeporte() + ", " + this.olimpiada.getNombreOlimpiada();
+	}
+
 	@Override
 	public int hashCode() {
 		return Objects.hash(deporte, nombreEvento, olimpiada);
 	}
 
-	/**
-	 * Compara esta instancia de ModeloEvento con otro objeto para determinar si 
-	 * son iguales, basándose en el nombre del evento, el deporte y la olimpiada.
-	 * 
-	 * @param obj El objeto a comparar con la instancia actual.
-	 * @return true si los objetos son iguales; false en caso contrario.
-	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
+		if (obj == null || getClass() != obj.getClass())
 			return false;
 		ModeloEvento other = (ModeloEvento) obj;
 		return Objects.equals(deporte, other.deporte) && Objects.equals(nombreEvento, other.nombreEvento)
