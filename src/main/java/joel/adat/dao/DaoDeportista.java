@@ -138,7 +138,7 @@ public class DaoDeportista {
      * @param peso El peso del deportista.
      * @param altura La altura del deportista.
      */
-    public static void aniadirDeportista(String nombreDeportista, char sexo, float peso, int altura) {
+    public static void aniadirDeportista(String nombreDeportista, char sexo, int peso, int altura) {
         Transaction transaction = null;
 
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
