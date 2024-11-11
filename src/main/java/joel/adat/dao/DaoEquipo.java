@@ -1,93 +1,129 @@
 package joel.adat.dao;
 
-import joel.adat.bbdd.ConexionBBDD;
+import joel.adat.bbdd.HibernateUtil;
 import joel.adat.model.ModeloEquipo;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+import org.hibernate.query.Query;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.util.List;
 
 /**
- * Clase que maneja las operaciones relacionadas con la tabla de Equipos en la base de datos.
+ * Clase que maneja las operaciones relacionadas con la tabla de Equipos en la base de datos usando Hibernate.
  * Proporciona métodos para insertar, consultar y obtener información sobre equipos.
  */
 public class DaoEquipo {
-    private static Connection connection;
 
     /**
      * Inserta un nuevo equipo en la base de datos.
-     * 
+     *
      * @param nombre El nombre del equipo.
      * @param iniciales Las iniciales del equipo.
      */
     public static void aniadirEquipo(String nombre, String iniciales) {
-        connection = ConexionBBDD.getConnection();
-        String insertar = "INSERT INTO Equipo (nombre, iniciales) VALUES (?,?)";
-        
-        try {
-            PreparedStatement pstmt = connection.prepareStatement(insertar);
-            pstmt.setString(1, nombre);
-            pstmt.setString(2, iniciales);
-            pstmt.executeUpdate();
-            connection.commit();
-        } catch (SQLException e) {
+        Transaction transaction = null;
+
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
+
+            // Crear un nuevo modelo de equipo
+            ModeloEquipo equipo = new ModeloEquipo(nombre, iniciales);
+
+            // Guardar el equipo en la base de datos
+            session.save(equipo);
+
+            // Confirmar la transacción
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) transaction.rollback();
             e.printStackTrace();
         }
     }
 
     /**
      * Obtiene el ID de un equipo a partir de su nombre y sus iniciales.
-     * 
+     *
      * @param nombre El nombre del equipo.
      * @param iniciales Las iniciales del equipo.
      * @return El ID del equipo si existe, o null si no se encuentra.
      */
-    public static String conseguirIdEquipo(String nombre, String iniciales) {
-        connection = ConexionBBDD.getConnection();
-        String select = "SELECT id_equipo FROM Equipo WHERE nombre=? AND iniciales=?";
-        try {
-            PreparedStatement pstmt = connection.prepareStatement(select);
-            pstmt.setString(1, nombre);
-            pstmt.setString(2, iniciales);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                String id = rs.getString("id_equipo");
-                connection.commit();
-                return id;
-            }
-        } catch (SQLException e) {
+    public static Integer conseguirIdEquipo(String nombre, String iniciales) {
+        Integer idEquipo = null;
+        Transaction transaction = null;
+
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
+
+            // HQL para obtener el ID del equipo por nombre e iniciales
+            String hql = "SELECT e.idEquipo FROM ModeloEquipo e WHERE e.nombreEquipo = :nombre AND e.iniciales = :iniciales";
+            Query<Integer> query = session.createQuery(hql, Integer.class);
+            query.setParameter("nombre", nombre);
+            query.setParameter("iniciales", iniciales);
+
+            // Obtener el resultado
+            idEquipo = query.uniqueResult();
+
+            // Confirmar la transacción
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) transaction.rollback();
             e.printStackTrace();
         }
-        return null;
+
+        return idEquipo;
     }
 
     /**
-     * Crea un objeto `ModeloEquipo` a partir del ID de un equipo.
-     * 
+     * Obtiene un equipo completo a partir de su ID.
+     *
      * @param id El ID del equipo.
-     * @return Un objeto `ModeloEquipo` correspondiente al equipo con el ID proporcionado.
+     * @return El equipo con el ID proporcionado, o null si no se encuentra.
      */
-    public static ModeloEquipo createEquipoModel(int id) {
-        connection = ConexionBBDD.getConnection();
-        String consulta = "SELECT nombre, iniciales FROM Equipo WHERE id_equipo=?";
-        
-        try (PreparedStatement pstmt = connection.prepareStatement(consulta)) {
-            pstmt.setInt(1, id);
-            ResultSet rs = pstmt.executeQuery();
+    public static ModeloEquipo obtenerEquipoPorId(int id) {
+        ModeloEquipo equipo = null;
+        Transaction transaction = null;
 
-            if (rs.next()) {
-                connection.commit();
-                String nombre = rs.getString("nombre");
-                String iniciales = rs.getString("iniciales");
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
 
-                return new ModeloEquipo(nombre, iniciales);
-            }
+            // Buscar el equipo por ID utilizando Hibernate
+            equipo = session.get(ModeloEquipo.class, id);
 
-        } catch (SQLException e) {
+            // Confirmar la transacción
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) transaction.rollback();
             e.printStackTrace();
         }
-        
-        return null;
+
+        return equipo;
+    }
+
+    /**
+     * Obtiene todos los equipos de la base de datos.
+     *
+     * @return Una lista de todos los equipos en la base de datos.
+     */
+    public static List<ModeloEquipo> obtenerTodosLosEquipos() {
+        List<ModeloEquipo> equipos = null;
+        Transaction transaction = null;
+
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
+
+            // Consulta HQL para obtener todos los equipos
+            String hql = "FROM ModeloEquipo";
+            Query<ModeloEquipo> query = session.createQuery(hql, ModeloEquipo.class);
+
+            equipos = query.list();
+
+            // Confirmar la transacción
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) transaction.rollback();
+            e.printStackTrace();
+        }
+
+        return equipos;
     }
 }

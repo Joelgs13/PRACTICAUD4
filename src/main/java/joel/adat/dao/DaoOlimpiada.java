@@ -1,156 +1,99 @@
 package joel.adat.dao;
 
-import joel.adat.bbdd.ConexionBBDD;
 import joel.adat.model.ModeloOlimpiada;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+import org.hibernate.query.Query;
+import joel.adat.bbdd.HibernateUtil;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 
-/**
- * Clase que maneja las operaciones relacionadas con la tabla de Olimpiadas en la base de datos.
- * Proporciona métodos para consultar, insertar y obtener información de las olimpiadas.
- */
 public class DaoOlimpiada {
-    private static Connection connection;
 
-    /**
-     * Inserta una nueva Olimpiada en la base de datos.
-     * 
-     * @param nombre El nombre de la olimpiada.
-     * @param anio El año en que se celebró la olimpiada.
-     * @param temporada La temporada de la olimpiada (invierno o verano).
-     * @param ciudad La ciudad que albergó la olimpiada.
-     */
+    // Insert a new Olimpiada
     public static void aniadirOlimpiada(String nombre, int anio, String temporada, String ciudad) {
-        connection = ConexionBBDD.getConnection();
-        String insertar = "INSERT INTO Olimpiada (nombre, anio, temporada, ciudad) VALUES (?,?,?,?)";
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        Transaction transaction = null;
+
         try {
-            PreparedStatement pstmt = connection.prepareStatement(insertar);
-            pstmt.setString(1, nombre);
-            pstmt.setInt(2, anio);
-            pstmt.setString(3, temporada);
-            pstmt.setString(4, ciudad);
-            pstmt.executeUpdate();
-            connection.commit();
-        } catch (SQLException e) {
+            transaction = session.beginTransaction();
+            ModeloOlimpiada olimpiada = new ModeloOlimpiada();
+            olimpiada.setNombreOlimpiada(nombre);
+            olimpiada.setAnio(anio);
+            olimpiada.setTemporada(temporada);
+            olimpiada.setCiudad(ciudad);
+            session.save(olimpiada);
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
             e.printStackTrace();
+        } finally {
+            session.close();
         }
     }
 
-    /**
-     * Obtiene una lista de olimpiadas que corresponden a una temporada específica.
-     * 
-     * @param temp El valor que representa la temporada (1 para invierno, 2 para verano).
-     * @return Una lista de objetos ModeloOlimpiada correspondientes a la temporada solicitada.
-     */
+    // Get a list of Olimpiadas by season
     public static ArrayList<ModeloOlimpiada> listaOlimpiadasPorTemporada(int temp) {
+        Session session = HibernateUtil.getSessionFactory().openSession();
         ArrayList<ModeloOlimpiada> lst = new ArrayList<>();
         String temporada = (temp == 2) ? "Summer" : "Winter";
-        connection = ConexionBBDD.getConnection();
-        String select = "SELECT id_olimpiada FROM Olimpiada WHERE temporada=?";
+
         try {
-            PreparedStatement pstmt = connection.prepareStatement(select);
-            pstmt.setString(1, temporada);
-            ResultSet rs = pstmt.executeQuery();
-            while (rs.next()) {
-                connection.commit();
-                lst.add(DaoOlimpiada.createOlimpiadaModel(rs.getInt("id_olimpiada")));
-            }
-        } catch (SQLException e) {
+            String hql = "FROM ModeloOlimpiada WHERE temporada = :temporada";
+            Query<ModeloOlimpiada> query = session.createQuery(hql, ModeloOlimpiada.class);
+            query.setParameter("temporada", temporada);
+            lst = (ArrayList<ModeloOlimpiada>) query.list();
+        } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            session.close();
         }
+
         return lst;
     }
 
-    /**
-     * Obtiene el ID de una olimpiada a partir de sus detalles.
-     * 
-     * @param nombre El nombre de la olimpiada.
-     * @param anio El año en que se celebró la olimpiada.
-     * @param temporada La temporada de la olimpiada (invierno o verano).
-     * @param ciudad La ciudad que albergó la olimpiada.
-     * @return El ID de la olimpiada si se encuentra, o null si no existe.
-     */
+    // Get the ID of an Olimpiada by its details
     public static String conseguirIdOlimpiada(String nombre, int anio, String temporada, String ciudad) {
-        connection = ConexionBBDD.getConnection();
-        String select = "SELECT id_olimpiada FROM Olimpiada WHERE nombre=? AND anio=? AND temporada=? AND ciudad=?";
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        String id = null;
+
         try {
-            PreparedStatement pstmt = connection.prepareStatement(select);
-            pstmt.setString(1, nombre);
-            pstmt.setInt(2, anio);
-            pstmt.setString(3, temporada);
-            pstmt.setString(4, ciudad);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                String id = rs.getString("id_olimpiada");
-                connection.commit();
-                return id;
-            }
-        } catch (SQLException e) {
+            String hql = "SELECT idOlimpiada FROM ModeloOlimpiada WHERE nombre = :nombre AND anio = :anio AND temporada = :temporada AND ciudad = :ciudad";
+            Query<Integer> query = session.createQuery(hql, Integer.class);
+            query.setParameter("nombre", nombre);
+            query.setParameter("anio", anio);
+            query.setParameter("temporada", temporada);
+            query.setParameter("ciudad", ciudad);
+            id = String.valueOf(query.uniqueResult());
+        } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            session.close();
         }
-        return null;
+
+        return id;
     }
 
-    /**
-     * Crea un objeto ModeloOlimpiada a partir del ID de la olimpiada.
-     * 
-     * @param id El ID de la olimpiada.
-     * @return Un objeto ModeloOlimpiada que representa la olimpiada con ese ID.
-     */
+    // Get a single Olimpiada by ID
     public static ModeloOlimpiada createOlimpiadaModel(int id) {
-        connection = ConexionBBDD.getConnection();
-        String consulta = "SELECT nombre, anio, temporada, ciudad FROM Olimpiada WHERE id_olimpiada=?";
-        try (PreparedStatement pstmt = connection.prepareStatement(consulta)) {
-            pstmt.setInt(1, id);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                connection.commit();
-                String nombre = rs.getString("nombre");
-                int anio = rs.getInt("anio");
-                String temporada = rs.getString("temporada");
-                String ciudad = rs.getString("ciudad");
+        Session session = HibernateUtil.getSessionFactory().openSession();
+        ModeloOlimpiada olimpiada = null;
 
-                return new ModeloOlimpiada(nombre, anio, temporada, ciudad);
-            }
-        } catch (SQLException e) {
+        try {
+            olimpiada = session.get(ModeloOlimpiada.class, id);
+        } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            session.close();
         }
-        return null;
+
+        return olimpiada;
     }
 
-    /**
-     * Obtiene una lista de olimpiadas basadas en la temporada.
-     * 
-     * @param temp El valor que representa la temporada (1 para invierno, 2 para verano).
-     * @return Una lista de objetos ModeloOlimpiada correspondientes a la temporada solicitada.
-     */
+    // Get a list of Olimpiadas based on season
     public static ArrayList<ModeloOlimpiada> listOlimpiadasByTemp(int temp) {
-        ArrayList<ModeloOlimpiada> lst = new ArrayList<>();
-
-        // Usamos un operador ternario para asignar la temporada
-        String temporada = (temp == 2) ? "Summer" : "Winter";
-
-        // Consulta SQL para obtener los id de las olimpiadas de la temporada seleccionada
-        String select = "SELECT id_olimpiada FROM Olimpiada WHERE temporada=?";
-        
-        try (Connection con = ConexionBBDD.getConnection();
-             PreparedStatement pstmt = con.prepareStatement(select)) {
-
-            pstmt.setString(1, temporada);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    // Añadir la olimpiada a la lista
-                    lst.add(DaoOlimpiada.createOlimpiadaModel(rs.getInt("id_olimpiada")));
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return lst;
+        return listaOlimpiadasPorTemporada(temp);
     }
 }

@@ -1,205 +1,166 @@
 package joel.adat.dao;
 
-import joel.adat.bbdd.ConexionBBDD;
 import joel.adat.model.ModeloDeporte;
 import joel.adat.model.ModeloEvento;
 import joel.adat.model.ModeloOlimpiada;
+import joel.adat.bbdd.HibernateUtil;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+import org.hibernate.query.Query;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Clase que maneja las operaciones relacionadas con la tabla de Eventos en la base de datos.
+ * Clase que maneja las operaciones relacionadas con la tabla de Eventos en la base de datos usando Hibernate.
  * Proporciona métodos para insertar, consultar y obtener eventos relacionados con olimpiadas y deportes.
  */
 public class DaoEvento {
-    private static Connection connection;
 
     /**
      * Inserta un nuevo evento en la base de datos.
-     * 
+     *
      * @param nombreEvento El nombre del evento.
      * @param idOlimpiada El ID de la olimpiada asociada al evento.
      * @param idDeporte El ID del deporte asociado al evento.
      */
     public static void aniadirEvento(String nombreEvento, int idOlimpiada, int idDeporte) {
-        connection = ConexionBBDD.getConnection();
-        String insertar = "INSERT INTO Evento (nombre, id_olimpiada, id_deporte) VALUES (?,?,?)";
-        try {
-            PreparedStatement pstmt = connection.prepareStatement(insertar);
-            pstmt.setString(1, nombreEvento);
-            pstmt.setInt(2, idOlimpiada);
-            pstmt.setInt(3, idDeporte);
-            pstmt.executeUpdate();
-            connection.commit();
-        } catch (SQLException e) {
+        Transaction transaction = null;
+
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
+
+            // Crear el nuevo evento
+            ModeloDeporte deporte = session.get(ModeloDeporte.class, idDeporte);
+            ModeloOlimpiada olimpiada = session.get(ModeloOlimpiada.class, idOlimpiada);
+
+            ModeloEvento evento = new ModeloEvento(nombreEvento, deporte, olimpiada);
+
+            // Guardar el evento en la base de datos
+            session.save(evento);
+
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) transaction.rollback();
             e.printStackTrace();
         }
     }
 
     /**
      * Crea una lista de objetos `ModeloEvento` basados en el deporte y la olimpiada proporcionados.
-     * 
+     *
      * @param idDeporte El ID del deporte.
      * @param idOlimpiada El ID de la olimpiada.
      * @return Una lista de eventos correspondientes al deporte y la olimpiada dados.
      */
-    public static ArrayList<ModeloEvento> crearListaModelosPorDeporteYOlimpiada(int idDeporte, int idOlimpiada) {
-        connection = ConexionBBDD.getConnection();
-        String select = "SELECT nombre FROM Evento WHERE id_deporte=? AND id_olimpiada=?";
-        ArrayList<ModeloEvento> lst = new ArrayList<>();
-        try {
-            PreparedStatement pstmt = connection.prepareStatement(select);
-            pstmt.setInt(1, idDeporte);
-            pstmt.setInt(2, idOlimpiada);
-            ResultSet rs = pstmt.executeQuery();
-            while (rs.next()) {
-                connection.commit();
-                ModeloEvento evento = new ModeloEvento(
-                        rs.getString("nombre"),
-                        DaoDeporte.createDeporteModel(idDeporte),
-                        DaoOlimpiada.createOlimpiadaModel(idOlimpiada)
-                );
-                if (!lst.contains(evento)) {
-                    lst.add(evento);
-                }
-            }
-        } catch (SQLException e) {
+    public static List<ModeloEvento> crearListaModelosPorDeporteYOlimpiada(int idDeporte, int idOlimpiada) {
+        List<ModeloEvento> lst = new ArrayList<>();
+        Transaction transaction = null;
+
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
+
+            // Crear la consulta HQL para obtener eventos según deporte y olimpiada
+            String hql = "FROM ModeloEvento e WHERE e.deporte.id = :idDeporte AND e.olimpiada.id = :idOlimpiada";
+            Query<ModeloEvento> query = session.createQuery(hql, ModeloEvento.class);
+            query.setParameter("idDeporte", idDeporte);
+            query.setParameter("idOlimpiada", idOlimpiada);
+
+            lst = query.getResultList();
+
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) transaction.rollback();
             e.printStackTrace();
         }
+
         return lst;
     }
 
     /**
      * Obtiene una lista de eventos a partir de una lista de IDs de eventos.
-     * 
+     *
      * @param lstId Una lista de IDs de eventos.
      * @return Una lista de objetos `ModeloEvento` correspondientes a los IDs dados.
      */
-    public static ArrayList<ModeloEvento> listaModelosPorId(ArrayList<String> lstId) {
-        connection = ConexionBBDD.getConnection();
-        ArrayList<ModeloEvento> lst = new ArrayList<>();
-        String select = "SELECT nombre, id_deporte, id_olimpiada FROM Evento where id_evento=?";
-        try {
-            PreparedStatement pstmt = connection.prepareStatement(select);
+    public static List<ModeloEvento> listaModelosPorId(List<String> lstId) {
+        List<ModeloEvento> lst = new ArrayList<>();
+        Transaction transaction = null;
+
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
+
+            // Itera por la lista de IDs y obtiene los eventos
             for (String id : lstId) {
-                pstmt.setInt(1, Integer.parseInt(id));
-                ResultSet rs = pstmt.executeQuery();
-                if (rs.next()) {
-                    connection.commit();
-                    ModeloEvento evento = new ModeloEvento(
-                            rs.getString("nombre"),
-                            DaoDeporte.createDeporteModel(rs.getInt("id_deporte")),
-                            DaoOlimpiada.createOlimpiadaModel(rs.getInt("id_olimpiada"))
-                    );
+                ModeloEvento evento = session.get(ModeloEvento.class, Integer.parseInt(id));
+                if (evento != null) {
                     lst.add(evento);
                 }
             }
-        } catch (SQLException e) {
+
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) transaction.rollback();
             e.printStackTrace();
         }
+
         return lst;
     }
 
     /**
      * Crea un objeto `ModeloEvento` a partir de un ID de evento.
-     * 
+     *
      * @param id El ID del evento.
      * @return Un objeto `ModeloEvento` correspondiente al evento con el ID proporcionado.
      */
     public static ModeloEvento createById(int id) {
-        connection = ConexionBBDD.getConnection();
-        String consulta = "SELECT nombre, id_deporte, id_olimpiada FROM Evento WHERE id_evento=?";
-        
-        try (PreparedStatement pstmt = connection.prepareStatement(consulta)) {
-            pstmt.setInt(1, id);
-            ResultSet rs = pstmt.executeQuery();
+        Transaction transaction = null;
+        ModeloEvento evento = null;
 
-            if (rs.next()) {
-                connection.commit();
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
 
-                String nombreEvento = rs.getString("nombre");
-                ModeloDeporte deporte = DaoDeporte.createDeporteModel(rs.getInt("id_deporte"));
-                ModeloOlimpiada olimpiada = DaoOlimpiada.createOlimpiadaModel(rs.getInt("id_olimpiada"));
-                
-                return new ModeloEvento(nombreEvento, deporte, olimpiada);
-            }
-            
-        } catch (SQLException e) {
+            evento = session.get(ModeloEvento.class, id);
+
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) transaction.rollback();
             e.printStackTrace();
         }
-        
-        return null;
+
+        return evento;
     }
 
     /**
      * Obtiene el ID de un evento a partir de su nombre, ID de olimpiada e ID de deporte.
-     * 
+     *
      * @param nombreEvento El nombre del evento.
      * @param idOlimpiada El ID de la olimpiada asociada.
      * @param idDeporte El ID del deporte asociado.
      * @return El ID del evento si existe, o null si no se encuentra.
      */
     public static String conseguirIdEvento(String nombreEvento, int idOlimpiada, int idDeporte) {
-        connection = ConexionBBDD.getConnection();
-        String select = "SELECT id_evento FROM Evento WHERE nombre=? AND id_olimpiada=? AND id_deporte=?";
-        try {
-            PreparedStatement pstmt = connection.prepareStatement(select);
-            pstmt.setString(1, nombreEvento);
-            pstmt.setInt(2, idOlimpiada);
-            pstmt.setInt(3, idDeporte);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                String id = rs.getString("id_evento");
-                connection.commit();
-                return id;
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
+        Transaction transaction = null;
+        String idEvento = null;
 
-    /**
-     * Obtiene una lista de objetos `ModeloEvento` basados en el deporte y la olimpiada proporcionados.
-     * 
-     * @param idDeporte El ID del deporte.
-     * @param idOlimpiada El ID de la olimpiada.
-     * @return Una lista de eventos correspondientes al deporte y la olimpiada dados.
-     */
-    public static ArrayList<ModeloEvento> modelosByDeporteOlimpiada(int idDeporte, int idOlimpiada) {
-        ArrayList<ModeloEvento> lst = new ArrayList<>();
-        
-        String select = "SELECT nombre FROM Evento WHERE id_deporte=? AND id_olimpiada=?";
-        
-        try (Connection con = ConexionBBDD.getConnection();
-             PreparedStatement pstmt = con.prepareStatement(select)) {
-            
-            pstmt.setInt(1, idDeporte);
-            pstmt.setInt(2, idOlimpiada);
-            
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    // Crear un objeto ModeloEvento y añadirlo a la lista
-                    ModeloEvento evento = new ModeloEvento(
-                            rs.getString("nombre"),
-                            DaoDeporte.createDeporteModel(idDeporte),
-                            DaoOlimpiada.createOlimpiadaModel(idOlimpiada)
-                    );
-                    
-                    // Añadir el evento solo si no está ya en la lista
-                    if (!lst.contains(evento)) {
-                        lst.add(evento);
-                    }
-                }
-            }
-        } catch (SQLException e) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
+
+            String hql = "SELECT e.id FROM ModeloEvento e WHERE e.nombre = :nombreEvento " +
+                    "AND e.olimpiada.id = :idOlimpiada AND e.deporte.id = :idDeporte";
+            Query<String> query = session.createQuery(hql, String.class);
+            query.setParameter("nombreEvento", nombreEvento);
+            query.setParameter("idOlimpiada", idOlimpiada);
+            query.setParameter("idDeporte", idDeporte);
+
+            idEvento = query.uniqueResult();
+
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) transaction.rollback();
             e.printStackTrace();
         }
-        
-        return lst;
+
+        return idEvento;
     }
 }
